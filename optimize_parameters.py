@@ -9,6 +9,7 @@ from ACOMultiAgentPathfinder import ACOMultiAgentPathfinder
 from datetime import datetime
 import multiprocessing
 import os
+import logging
 from yaml_utils import save_results, load_results
 
 # Define the parameter space
@@ -28,6 +29,12 @@ def run_benchmark(args):
     np.random.seed(seed)
     G = benchmark.graph_generator(**benchmark_params)
     start_positions, goal_positions = benchmark.start_goal_generator(G, **benchmark_params)
+    if not all(goal in G.nodes() for goal in goal_positions):
+        logging.warn(f"Goal not in graph")
+        return 0, np.inf
+    if not all(start in G.nodes() for start in start_positions):
+        logging.warn(f"start not in graph")
+        return 0, np.inf
     solver = ACOMultiAgentPathfinder(G, start_positions, goal_positions, **solver_params)
     solution = solver.solve()
     if solution:

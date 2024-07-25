@@ -28,6 +28,10 @@ class Benchmark:
         logging.info(f"Number of agents: {len(start_positions)}")
         for i, (start, goal) in enumerate(zip(start_positions, goal_positions)):
             logging.info(f"Agent {i+1}: {start} -> {goal}")
+        
+        # assert all goals and start positions are within the graph
+        assert all(goal in G.nodes() for goal in goal_positions)
+        assert all(start in G.nodes() for start in start_positions)
 
         solver = ACOMultiAgentPathfinder(G, start_positions, goal_positions, **planner_params)
         solution = solver.solve()
