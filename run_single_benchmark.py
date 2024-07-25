@@ -13,13 +13,14 @@ def run_single_benchmark(benchmark_index):
     planner_params = {
         'n_ants': 20,
         'n_iterations': 200,
-        'alpha': 1.2,
-        'beta': 1.6,
-        'gamma': 1.43,
-        'evaporation_rate': 0.3,
-        'dispersion_rate': 0.5,
-        'communication_interval': 2,
-        'initial_epsilon': 0.6
+        'alpha': 1.5,
+        'beta': 0.3,
+        'gamma': 2.5,
+        'evaporation_rate': 0.5,
+        'dispersion_rate': 0.2,
+        'communication_interval': 3,
+        'collision_weight': 0.7,
+        'initial_epsilon': 0.85,
     }
     
     # Run the benchmark

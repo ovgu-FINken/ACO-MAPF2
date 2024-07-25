@@ -1,0 +1,5 @@
+benchmark,success_mean,success_std,mean_path_length_mean,mean_path_length_std,longest_path_mean,longest_path_std
+Grid,0.3333333333333333,0.4815434123430768,inf,,inf,
+Linear,0.0,0.0,inf,,inf,
+Passage,1.0,0.0,34.25,15.397124035722664,42.875,18.074745601845372
+Star,0.36,0.48989794855663554,inf,,inf,
