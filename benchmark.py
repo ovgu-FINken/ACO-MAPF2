@@ -132,18 +132,29 @@ def star_start_goal_generator(G, n_branches, branch_length, empty_branch=False, 
         goal_positions = [f'branch_{(i+1)%n_branches}_{branch_length}' for i in range(n_branches)]
     return start_positions, goal_positions
 
+def linear_graph_generator(length, **kwargs):
+    return nx.path_graph(length)
+
+def linear_start_goal_generator(G, n_agents, **kwargs):
+    length = len(G)
+    start_positions = [0] * n_agents
+    goal_positions = [length - 1] * n_agents
+    return start_positions, goal_positions
+
+
+
+
 # Define benchmark instances
 grid_benchmark = Benchmark("Grid", grid_graph_generator, grid_start_goal_generator)
 passage_benchmark = Benchmark("Passage", passage_graph_generator, passage_start_goal_generator)
 star_benchmark = Benchmark("Star", star_graph_generator, star_start_goal_generator)
+linear_benchmark = Benchmark("Linear", linear_graph_generator, linear_start_goal_generator)
 
 # List of all benchmarks
 all_benchmarks = [
-    (grid_benchmark, {'width': 3, 'height': 3, 'n_agents': 6}),
-    (grid_benchmark, {'width': 3, 'height': 6, 'n_agents': 6}),
-    (grid_benchmark, {'width': 5, 'height': 5, 'n_agents': 10}),
-    (grid_benchmark, {'width': 5, 'height': 3, 'n_agents': 10}),
-    (passage_benchmark, {'width': 10, 'height': 5, 'passage_length': 2}),
+    (linear_benchmark, {'length': 5, 'n_agents': 2}),
+    (linear_benchmark, {'length': 5, 'n_agents': 3}),
+    (linear_benchmark, {'length': 10, 'n_agents': 2}),
     (star_benchmark, {'n_branches': 3, 'branch_length': 1, 'empty_branch': False}),
     (star_benchmark, {'n_branches': 4, 'branch_length': 1, 'empty_branch': True}),
     (star_benchmark, {'n_branches': 6, 'branch_length': 1, 'empty_branch': False}),
@@ -152,4 +163,9 @@ all_benchmarks = [
     (star_benchmark, {'n_branches': 4, 'branch_length': 2, 'empty_branch': True}),
     (star_benchmark, {'n_branches': 6, 'branch_length': 2, 'empty_branch': False}),
     (star_benchmark, {'n_branches': 7, 'branch_length': 2, 'empty_branch': True}),
+    (grid_benchmark, {'width': 3, 'height': 3, 'n_agents': 6}),
+    (grid_benchmark, {'width': 3, 'height': 6, 'n_agents': 6}),
+    (grid_benchmark, {'width': 5, 'height': 5, 'n_agents': 10}),
+    (grid_benchmark, {'width': 5, 'height': 3, 'n_agents': 10}),
+    (passage_benchmark, {'width': 10, 'height': 5, 'passage_length': 2}),
 ]

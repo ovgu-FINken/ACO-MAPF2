@@ -55,12 +55,12 @@ if __name__ == "__main__":
     # Example planner parameters
     planner_params = {
         'n_ants': 20,
-        'n_iterations': 200,
+        'n_iterations': 100,
         'alpha': 1,
         'beta': 2,
-        'gamma': 4,
+        'gamma': 1,
         'evaporation_rate': 0.1,
-        'communication_interval': 10,
+        'communication_interval': 5,
         'initial_epsilon': 0.8
     }
     
