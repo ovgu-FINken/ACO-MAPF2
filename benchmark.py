@@ -191,5 +191,5 @@ all_benchmarks = [
     (random_grid_benchmark, {'width': 8, 'height': 5, 'n_agents': 10}),
     (random_grid_benchmark, {'width': 10, 'height': 10, 'n_agents': 30}),
     (passage_benchmark, {'width': 10, 'height': 5, 'passage_length': 2}),
-    (passage_benchmark, {'width': 10, 'height': 5, 'passage_length': 2}),
+    (passage_benchmark, {'width': 10, 'height': 5, 'passage_length': 10}),
 ]

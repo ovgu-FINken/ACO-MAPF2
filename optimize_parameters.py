@@ -65,7 +65,7 @@ def objective(**params):
     # Compute the objective score (to be minimized)
     score = -success_rate * 1000 - (1 / (avg_path_length + 1))
     if np.isnan(score):
-        score = -np.inf
+        score = 0
     
     # Update best observed results if necessary
     if score < best_observed_score:
