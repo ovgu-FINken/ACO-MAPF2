@@ -167,6 +167,8 @@ all_benchmarks = [
     (linear_benchmark, {'length': 4, 'n_agents': 2}),
     (linear_benchmark, {'length': 5, 'n_agents': 2}),
     (linear_benchmark, {'length': 10, 'n_agents': 2}),
+    (linear_benchmark, {'length': 5, 'n_agents': 3}),
+    (linear_benchmark, {'length': 10, 'n_agents': 3}),
     (star_benchmark, {'n_branches': 3, 'branch_length': 1, 'empty_branch': False}),
     (star_benchmark, {'n_branches': 4, 'branch_length': 1, 'empty_branch': False}),
     (star_benchmark, {'n_branches': 5, 'branch_length': 1, 'empty_branch': False}),
@@ -189,7 +191,8 @@ all_benchmarks = [
     (random_grid_benchmark, {'width': 5, 'height': 5, 'n_agents': 10}),
     (random_grid_benchmark, {'width': 8, 'height': 5, 'n_agents': 10}),
     (random_grid_benchmark, {'width': 8, 'height': 5, 'n_agents': 10}),
-    (random_grid_benchmark, {'width': 10, 'height': 10, 'n_agents': 30}),
+    # takes much too long:
+    #(random_grid_benchmark, {'width': 10, 'height': 10, 'n_agents': 30}),
     (passage_benchmark, {'width': 10, 'height': 5, 'passage_length': 2}),
     (passage_benchmark, {'width': 10, 'height': 5, 'passage_length': 10}),
 ]

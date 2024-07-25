@@ -216,7 +216,7 @@ class ACOMultiAgentPathfinder:
         self.n_iterations = n_iterations
         self.communication_interval = communication_interval
 
-        self.time_horizon = len(self.G.nodes()) * 2
+        self.time_horizon = int(np.sqrt(len(self.G.nodes()))) * 3
 
         self.agents = [Agent(i,
                             start_positions[i],

@@ -4,9 +4,12 @@ from benchmark import all_benchmarks
 from ACOMultiAgentPathfinder import ACOMultiAgentPathfinder
 from datetime import datetime
 import random
+import logging
 
 def run_single_benchmark(benchmark_index):
     benchmark, benchmark_params = all_benchmarks[benchmark_index % len(all_benchmarks)]
+    print("running benchmark for benchmark index: " + str(benchmark_index))
+    print("benchmark name: " + benchmark.name)
     random.seed(benchmark_index)
     
     # Example planner parameters (you may want to load these from a config file)

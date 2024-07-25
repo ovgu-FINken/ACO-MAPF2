@@ -85,6 +85,18 @@ elif benchmark_type == 'Grid':
                         title='Grid Benchmark: Grid Dimensions vs Success Rate')
     fig.update_scenes(zaxis_tickformat=".0%")
     st.plotly_chart(fig)
+    
+elif benchmark_type == 'Random Grid':
+    st.subheader('Random Grid Benchmark Analysis')
+    
+    grid_df = df[df['benchmark'] == 'Random Grid'].groupby(['width', 'height', 'n_agents'])['success_int'].mean().reset_index()
+    fig = px.scatter_3d(grid_df, x='width', y='height', z='success_int', 
+                        color='n_agents', size='success_int',
+                        labels={'width': 'Grid Width', 'height': 'Grid Height', 'success_int': 'Success Rate', 
+                                'n_agents': 'Number of Agents'},
+                        title='Random Grid Benchmark: Grid Dimensions vs Success Rate')
+    fig.update_scenes(zaxis_tickformat=".0%")
+    st.plotly_chart(fig)
 
 elif benchmark_type == 'Passage':
     st.subheader('Passage Benchmark Analysis')
