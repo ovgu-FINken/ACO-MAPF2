@@ -1,5 +1,6 @@
 # benchmark.py
 
+from random import sample
 import networkx as nx
 from itertools import cycle
 from ACOMultiAgentPathfinder import ACOMultiAgentPathfinder
@@ -94,6 +95,13 @@ def grid_start_goal_generator(G, n_agents, **kwargs):
     
     return start_positions, goal_positions
 
+def random_grid_start_goal_generator(G, n_agents, **kwargs):
+    nodelist = list(G.nodes())
+    # draw random sample from nodelist
+    start_positions = sample(nodelist, n_agents)
+    goal_positions = sample(nodelist, n_agents)
+    return start_positions, goal_positions
+
 def passage_graph_generator(width, height, passage_length, **kwargs):
     G = nx.Graph()
     for x in range(width):
@@ -149,6 +157,7 @@ def linear_start_goal_generator(G, n_agents, **kwargs):
 
 # Define benchmark instances
 grid_benchmark = Benchmark("Grid", grid_graph_generator, grid_start_goal_generator)
+random_grid_benchmark = Benchmark("Random Grid", grid_graph_generator, random_grid_start_goal_generator)
 passage_benchmark = Benchmark("Passage", passage_graph_generator, passage_start_goal_generator)
 star_benchmark = Benchmark("Star", star_graph_generator, star_start_goal_generator)
 linear_benchmark = Benchmark("Linear", linear_graph_generator, linear_start_goal_generator)
@@ -176,6 +185,11 @@ all_benchmarks = [
     (grid_benchmark, {'width': 4, 'height': 3, 'n_agents': 8}),
     (grid_benchmark, {'width': 5, 'height': 5, 'n_agents': 10}),
     (grid_benchmark, {'width': 5, 'height': 3, 'n_agents': 10}),
+    (random_grid_benchmark, {'width': 5, 'height': 5, 'n_agents': 5}),
+    (random_grid_benchmark, {'width': 5, 'height': 5, 'n_agents': 10}),
+    (random_grid_benchmark, {'width': 8, 'height': 5, 'n_agents': 10}),
+    (random_grid_benchmark, {'width': 8, 'height': 5, 'n_agents': 10}),
+    (random_grid_benchmark, {'width': 10, 'height': 10, 'n_agents': 30}),
     (passage_benchmark, {'width': 10, 'height': 5, 'passage_length': 2}),
     (passage_benchmark, {'width': 10, 'height': 5, 'passage_length': 2}),
 ]
