@@ -128,10 +128,10 @@ def star_start_goal_generator(G, n_branches, branch_length, empty_branch=False, 
     start_positions = [f'branch_{i}_{branch_length}' for i in range(n_branches-1)]
     if empty_branch:
         # all go to the empty branch which is branch n_branches-1
-        goal_positions = [f'branch_{n_branches-1}' for _ in range(n_branches-1)]
+        goal_positions = [f'branch_{n_branches-1}_{branch_length}' for _ in range(n_branches-1)]
     else:
         # go to the next branch, leave the empty branch empty
-        goal_positions = [f'branch_{(i+1)%(n_branches-1)}' for i in range(n_branches-1)]
+        goal_positions = [f'branch_{(i+1)%(n_branches-1)}_{branch_length}' for i in range(n_branches-1)]
     return start_positions, goal_positions
 
 def linear_graph_generator(length, **kwargs):
@@ -139,8 +139,8 @@ def linear_graph_generator(length, **kwargs):
 
 def linear_start_goal_generator(G, n_agents, **kwargs):
     length = len(G)
-    start_positions = [ (i + 1) // 2 if i % 2 == 0 else length - i // 2 for i in range(n_agents)]
-    goal_positions = [ (i + 1) // 2 if i % 2 != 0 else length - i // 2 for i in range(n_agents)]
+    start_positions = [ (i + 2) // 2 if i % 2 == 0 else length - 1 - i // 2 for i in range(n_agents)]
+    goal_positions = [ (i + 2) // 2 if i % 2 != 0 else length - 1 - i // 2 for i in range(n_agents)]
     
     return start_positions, goal_positions
 
