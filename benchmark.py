@@ -125,11 +125,13 @@ def star_graph_generator(n_branches, branch_length, **kwargs):
     return G
 
 def star_start_goal_generator(G, n_branches, branch_length, empty_branch=False, **kwargs):
-    start_positions = [f'branch_{i}_{branch_length}' for i in range(n_branches)]
+    start_positions = [f'branch_{i}_{branch_length}' for i in range(n_branches-1)]
     if empty_branch:
-        goal_positions = [f'branch_{(i+1)%n_branches}_{branch_length}' for i in range(n_branches-1)] + ['center']
+        # all go to the empty branch which is branch n_branches-1
+        goal_positions = [f'branch_{n_branches-1}' for _ in range(n_branches-1)]
     else:
-        goal_positions = [f'branch_{(i+1)%n_branches}_{branch_length}' for i in range(n_branches)]
+        # go to the next branch, leave the empty branch empty
+        goal_positions = [f'branch_{(i+1)%(n_branches-1)}' for i in range(n_branches-1)]
     return start_positions, goal_positions
 
 def linear_graph_generator(length, **kwargs):
@@ -137,8 +139,9 @@ def linear_graph_generator(length, **kwargs):
 
 def linear_start_goal_generator(G, n_agents, **kwargs):
     length = len(G)
-    start_positions = [0] * n_agents
-    goal_positions = [length - 1] * n_agents
+    start_positions = [ (i + 1) // 2 if i % 2 == 0 else length - i // 2 for i in range(n_agents)]
+    goal_positions = [ (i + 1) // 2 if i % 2 != 0 else length - i // 2 for i in range(n_agents)]
+    
     return start_positions, goal_positions
 
 
@@ -152,20 +155,27 @@ linear_benchmark = Benchmark("Linear", linear_graph_generator, linear_start_goal
 
 # List of all benchmarks
 all_benchmarks = [
+    (linear_benchmark, {'length': 4, 'n_agents': 2}),
     (linear_benchmark, {'length': 5, 'n_agents': 2}),
-    (linear_benchmark, {'length': 5, 'n_agents': 3}),
     (linear_benchmark, {'length': 10, 'n_agents': 2}),
     (star_benchmark, {'n_branches': 3, 'branch_length': 1, 'empty_branch': False}),
-    (star_benchmark, {'n_branches': 4, 'branch_length': 1, 'empty_branch': True}),
-    (star_benchmark, {'n_branches': 6, 'branch_length': 1, 'empty_branch': False}),
-    (star_benchmark, {'n_branches': 7, 'branch_length': 1, 'empty_branch': True}),
+    (star_benchmark, {'n_branches': 4, 'branch_length': 1, 'empty_branch': False}),
+    (star_benchmark, {'n_branches': 5, 'branch_length': 1, 'empty_branch': False}),
     (star_benchmark, {'n_branches': 3, 'branch_length': 2, 'empty_branch': False}),
+    (star_benchmark, {'n_branches': 4, 'branch_length': 2, 'empty_branch': False}),
+    (star_benchmark, {'n_branches': 5, 'branch_length': 2, 'empty_branch': False}),
+    (star_benchmark, {'n_branches': 3, 'branch_length': 1, 'empty_branch': True}),
+    (star_benchmark, {'n_branches': 4, 'branch_length': 1, 'empty_branch': True}),
+    (star_benchmark, {'n_branches': 5, 'branch_length': 1, 'empty_branch': True}),
+    (star_benchmark, {'n_branches': 3, 'branch_length': 2, 'empty_branch': True}),
     (star_benchmark, {'n_branches': 4, 'branch_length': 2, 'empty_branch': True}),
-    (star_benchmark, {'n_branches': 6, 'branch_length': 2, 'empty_branch': False}),
-    (star_benchmark, {'n_branches': 7, 'branch_length': 2, 'empty_branch': True}),
+    (star_benchmark, {'n_branches': 5, 'branch_length': 2, 'empty_branch': True}),
     (grid_benchmark, {'width': 3, 'height': 3, 'n_agents': 6}),
     (grid_benchmark, {'width': 3, 'height': 6, 'n_agents': 6}),
+    (grid_benchmark, {'width': 4, 'height': 4, 'n_agents': 8}),
+    (grid_benchmark, {'width': 4, 'height': 3, 'n_agents': 8}),
     (grid_benchmark, {'width': 5, 'height': 5, 'n_agents': 10}),
     (grid_benchmark, {'width': 5, 'height': 3, 'n_agents': 10}),
+    (passage_benchmark, {'width': 10, 'height': 5, 'passage_length': 2}),
     (passage_benchmark, {'width': 10, 'height': 5, 'passage_length': 2}),
 ]
