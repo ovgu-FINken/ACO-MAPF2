@@ -167,7 +167,7 @@ class Agent:
         # Calculate dynamic epsilon
         epsilon = self.initial_epsilon * (1 - iteration / max_iterations)
 
-        while current[0] != self.goal_position:
+        while current[0] != self.goal_position and len(path) < self.time_horizon:
             neighbors = list(self.G_t.neighbors(current))
             if not neighbors:
                 return None  # No valid path
@@ -175,6 +175,10 @@ class Agent:
             next_node = self.epsilon_greedy_decision(current, neighbors, self.goal_position, epsilon, use_adjacent)
             path.append(next_node)
             current = next_node
+        
+        if current[0] != self.goal_position:
+            remaining_cost = self._heuristic(current[0], self.goal_position)
+            path.append((self.goal_position, remaining_cost))
 
         return path
     
@@ -207,6 +211,7 @@ class ACOMultiAgentPathfinder:
     def __init__(self, graph, start_positions, goal_positions, n_ants=10, n_iterations=100, alpha=1, beta=2, gamma=4, evaporation_rate=0.1, dispersion_rate=0.1, communication_interval=10, initial_epsilon=1.0,
                     collision_weight=0.3,
                     length_weight=None,
+                    horizon=None,
             ):
         
         self.G = graph
@@ -216,7 +221,10 @@ class ACOMultiAgentPathfinder:
         self.n_iterations = n_iterations
         self.communication_interval = communication_interval
 
-        self.time_horizon = int(np.sqrt(len(self.G.nodes()))) * 3
+        if horizon is None:
+            self.time_horizon = int(np.sqrt(len(self.G.nodes()))) * 3
+        else:
+            self.time_horizon = horizon
 
         self.agents = [Agent(i,
                             start_positions[i],
