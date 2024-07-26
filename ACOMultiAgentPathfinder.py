@@ -104,6 +104,8 @@ class Agent:
             # Update pheromones
             for path, score in zip(unique_paths, combined_scores):
                 for i in range(len(path) - 1):
+                    if i >= self.time_horizon:
+                        break
                     u, v = path[i], path[i+1]
                     self.G_t[u][v]['pheromone'] += score
 
@@ -175,10 +177,6 @@ class Agent:
             next_node = self.epsilon_greedy_decision(current, neighbors, self.goal_position, epsilon, use_adjacent)
             path.append(next_node)
             current = next_node
-        
-        if current[0] != self.goal_position:
-            remaining_cost = self._heuristic(current[0], self.goal_position)
-            path.append((self.goal_position, remaining_cost))
 
         return path
     
@@ -208,7 +206,7 @@ class Agent:
         self.occupancy_matrix /= sum([len(path) for path in self.stored_paths])
 
 class ACOMultiAgentPathfinder:
-    def __init__(self, graph, start_positions, goal_positions, n_ants=20, n_iterations=200, alpha=1, beta=2, gamma=4, evaporation_rate=0.1, dispersion_rate=0.1, communication_interval=1, initial_epsilon=0.6,
+    def __init__(self, graph, start_positions, goal_positions, n_ants=10, n_iterations=100, alpha=1, beta=2, gamma=4, evaporation_rate=0.1, dispersion_rate=0.1, communication_interval=10, initial_epsilon=1.0,
                     collision_weight=0.3,
                     length_weight=None,
                     horizon=None,
@@ -252,6 +250,8 @@ class ACOMultiAgentPathfinder:
         occupied = {}
         for agent, path in enumerate(paths):
             for t, node in enumerate(path):
+                if t >= self.time_horizon:
+                    return True
                 # Check for same-time conflicts
                 if (t, node[0]) in occupied and occupied[(t, node[0])] != agent:
                     return True
@@ -290,7 +290,7 @@ class ACOMultiAgentPathfinder:
             # Find the best solution among all paths
             for paths in zip(*all_agent_paths):
                 if not self._check_conflicts(paths):
-                    total_length = sum(len(path) - 1 for path in paths)
+                    total_length = sum(path[-1][1] for path in paths)
                     if total_length < best_solution_length:
                         best_solution = paths
                         best_solution_length = total_length
