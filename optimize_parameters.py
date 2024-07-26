@@ -4,6 +4,8 @@ from skopt import gp_minimize
 from skopt.space import Real, Integer
 from skopt.utils import use_named_args
 from skopt.acquisition import gaussian_ei
+from skopt.learning import GaussianProcessRegressor
+from skopt.learning.gaussian_process.kernels import Matern
 from benchmark import all_benchmarks
 from ACOMultiAgentPathfinder import ACOMultiAgentPathfinder
 from datetime import datetime
@@ -17,10 +19,9 @@ space = [
     Real(0.5, 2.0, name='alpha'),
     Real(0.1, 5.0, name='beta'),
     Real(0.1, 5.0, name='gamma'),
-    Real(0.0, 0.8, name='evaporation_rate'),
-    Real(0.0, 0.8, name='dispersion_rate'),
-    Integer(1, 25, name='communication_interval'),
-    Real(0.0, 1.0, name='initial_epsilon'),
+#    Real(0.0, 0.3, name='evaporation_rate'),
+#    Real(0.0, 0.3, name='dispersion_rate'),
+#    Real(0.0, 1.0, name='initial_epsilon'),
     Real(0.0, 1.0, name='collision_weight'),
 ]
 
@@ -141,8 +142,15 @@ def optimize_parameters(n_calls=50):
     
     # Create a directory for results
     os.makedirs("optimization_results", exist_ok=True)
+    kernel = Matern(nu=2.5)    
+    gpr = GaussianProcessRegressor(kernel=kernel, normalize_y=True, n_restarts_optimizer=5)
     
-    result = gp_minimize(objective, space, n_calls=n_calls, random_state=42, n_initial_points=10)
+    result = gp_minimize(objective,
+                         space,
+                         n_calls=n_calls,
+                         n_initial_points=10,
+                         base_estimator=gpr,
+                         acq_func="EI")
     
     print("\nOptimization completed.")
     print("Best observed parameters:")
