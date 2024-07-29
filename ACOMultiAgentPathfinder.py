@@ -210,10 +210,22 @@ class Agent:
         self.occupancy_matrix /= sum([len(path) for path in self.stored_paths])
 
 class ACOMultiAgentPathfinder:
-    def __init__(self, graph, start_positions, goal_positions, n_episodes=10, n_iterations=100, alpha=1, beta=2, gamma=4, evaporation_rate=0.1, dispersion_rate=0.1, communication_interval=10, initial_epsilon=1.0,
-                    collision_weight=0.3,
-                    length_weight=None,
-                    horizon=None,
+    def __init__(self,
+                 graph,
+                 start_positions,
+                 goal_positions,
+                 n_episodes=10,
+                 n_iterations=100,
+                 alpha=1.0,
+                 beta=0.5,
+                 gamma=1.5,
+                 evaporation_rate=0.2,
+                 dispersion_rate=0.2,
+                 communication_interval=10,
+                 initial_epsilon=0.2,
+                 collision_weight=0.5,
+                 length_weight=None,
+                 horizon=None,
             ):
         
         self.G = graph

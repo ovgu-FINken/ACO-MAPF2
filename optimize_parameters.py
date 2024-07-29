@@ -19,10 +19,10 @@ space = [
     Real(0.5, 2.0, name='alpha'),
     Real(0.1, 5.0, name='beta'),
     Real(0.1, 5.0, name='gamma'),
-#    Real(0.0, 0.3, name='evaporation_rate'),
-#    Real(0.0, 0.3, name='dispersion_rate'),
-#    Real(0.0, 1.0, name='initial_epsilon'),
-    Real(0.0, 1.0, name='collision_weight'),
+    #Real(0.0, 0.3, name='evaporation_rate'),
+    #Real(0.0, 0.3, name='dispersion_rate'),
+    #Real(0.0, 1.0, name='initial_epsilon'),
+    #Real(0.0, 1.0, name='collision_weight'),
 ]
 
 def run_benchmark(args):
