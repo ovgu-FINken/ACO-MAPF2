@@ -2,7 +2,7 @@
 #SBATCH --job-name=aco_benchmark
 #SBATCH --output=output/benchmark_%A_%a.out
 #SBATCH --error=output/benchmark_%A_%a.err
-#SBATCH --array=0-176
+#SBATCH --array=0-325
 #SBATCH --time=02:00:00
 #SBATCH --mem=4G
 #SBATCH --cpus-per-task=1

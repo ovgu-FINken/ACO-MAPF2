@@ -16,9 +16,9 @@ def run_single_benchmark(benchmark_index):
     planner_params = {
         'n_ants': 20,
         'n_iterations': 200,
-        'alpha': 1.8,
-        'beta': 5,
-        'gamma': 0.7,
+        'alpha': 2.0,
+        'beta': 2.5,
+        'gamma': 1
         'evaporation_rate': 0.33,
         'dispersion_rate': 0.25,
         'communication_interval': 5,
