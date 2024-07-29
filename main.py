@@ -61,7 +61,8 @@ if __name__ == "__main__":
         'gamma': 1,
         'evaporation_rate': 0.1,
         'communication_interval': 5,
-        'initial_epsilon': 0.8
+        'initial_epsilon': 0.8,
+        'method': 'q-learning',
     }
     
     results_df = run_all_benchmarks(planner_params)

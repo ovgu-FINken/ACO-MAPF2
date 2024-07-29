@@ -24,6 +24,7 @@ class Agent:
                     initial_epsilon=0.8,
                     collision_weight=0.3,
                     length_weight=None,
+                    method="aco",
                 ):
         self.agent_id = agent_id
         self.start_position = start_position
@@ -38,12 +39,19 @@ class Agent:
         self.evaporation_rate = evaporation_rate
         self.dispersion_rate = dispersion_rate
         self.initial_epsilon = initial_epsilon
-        self.initialize_policy = self._initialize_pheromone
-        self.update_policy = self.update_pheromone
-        self.decision_function = self._aco_decision_function
+        if method == "aco":
+            self.initialize_policy = self._initialize_pheromone
+            self.update_policy = self.update_pheromone
+            self.decision_function = self._aco_decision_function
+        elif method == "q-learning":
+            self.initialize_policy = self._initialize_q
+            self.update_policy = self.update_q
+            self.decision_function = self._q_decision_function
+        else:
+            raise NotImplementedError(f"Method {method} is not implemented")
         self.initialize_policy()
         self.stored_paths = deque(maxlen=max_stored_iterations)
-        self.occupancy_matrix = np.zeros_like(self.get_node_pheromones())
+        self.occupancy_matrix = np.zeros_like(np.zeros((len(self.nodelist), self.time_horizon)))
         self.other_occupancy = np.zeros_like(self.occupancy_matrix)
         self.n_iterations = n_iterations
         self.n_episodes = n_episodes
@@ -64,11 +72,49 @@ class Agent:
     def _initialize_pheromone(self):
         nx.set_edge_attributes(self.G_t, 1.0, 'pheromone')
 
+    def _initialize_q(self):
+        nx.set_edge_attributes(self.G_t, 1.0, 'Q')
+        
     def get_node_pheromones(self):
         node_pheromones = np.zeros((len(self.nodelist), self.time_horizon))
         for (u, v, pheromone) in self.G_t.edges(data='pheromone'):
             node_pheromones[self.nodelist.index(v[0]), v[1]] += pheromone
         return node_pheromones
+
+    def update_q(self, paths):
+        for path in paths:
+            # Calculate the return (G) for this path
+            path_length = len(path) - 1
+            collision_prob = self._calculate_collision_probability(path)
+            
+            # Normalize path length and collision probability
+            max_length = self.time_horizon
+            normalized_length = (max_length - path_length) / max_length
+            
+            # Combine length and collision probability
+            G = self.length_weight * normalized_length + self.collision_weight * (1 - collision_prob)
+
+            # Update Q-values for each state-action pair in the path
+            for t in range(len(path) - 1):
+                state = path[t]
+                next_state = path[t + 1]
+                action = next_state[0]  # The node we're moving to
+
+                # Current Q-value
+                current_q = self.G_t[state][next_state]['Q']
+
+                # Update Q-value
+                self.G_t[state][next_state]['Q'] += self.alpha * (G - current_q)
+
+                # Discount the return for the next state-action pair
+                G *= self.gamma
+
+    def _calculate_collision_probability(self, path):
+        collision_prob = 0
+        for node, time in path:
+            collision_prob += self.other_occupancy[self.nodelist.index(node), time]
+        return collision_prob / len(path)    
+    
 
     def update_pheromone(self, paths):
         # Evaporation
@@ -159,6 +205,10 @@ class Agent:
             return neighbors[np.argmax(probabilities)]
         probabilities = probabilities / np.sum(probabilities)
         return neighbors[np.random.choice(len(probabilities), p=probabilities)]
+    
+    def _q_decision_function(self, current, neighbors, goal, greedy=False):
+        q_values = [self.G_t[current][neighbor]['Q'] for neighbor in neighbors]
+        return neighbors[np.argmax(q_values)]
 
     def epsilon_greedy_decision(self, current, neighbors, goal, epsilon, greedy=False):
         if random.random() < epsilon and not greedy:
@@ -226,6 +276,7 @@ class ACOMultiAgentPathfinder:
                  collision_weight=0.5,
                  length_weight=None,
                  horizon=None,
+                    method='aco',
             ):
         
         self.G = graph
@@ -234,6 +285,7 @@ class ACOMultiAgentPathfinder:
         self.n_episodes = n_episodes
         self.n_iterations = n_iterations
         self.communication_interval = communication_interval
+        self.method = method
 
         if horizon is None:
             self.time_horizon = int(np.sqrt(len(self.G.nodes()))) * 3
@@ -256,6 +308,7 @@ class ACOMultiAgentPathfinder:
                             n_iterations=self.communication_interval,
                             collision_weight=collision_weight,
                             length_weight=length_weight,
+                            method=method
                         )
                             
                        for i in range(self.n_agents)]
@@ -284,12 +337,13 @@ class ACOMultiAgentPathfinder:
 
     def _communicate(self):
         # Calculate the sum of all node pheromone matrices
-        all_node_pheromones = [agent.get_node_pheromones() for agent in self.agents]
-        pheromone_sum = sum(all_node_pheromones)
-        
-        # Update each agent with the sum
-        for i, agent in enumerate(self.agents):
-            agent.other_pheromones = (pheromone_sum - all_node_pheromones[i]) / (self.n_agents - 1)
+        if self.method=='aco':
+            all_node_pheromones = [agent.get_node_pheromones() for agent in self.agents]
+            pheromone_sum = sum(all_node_pheromones)
+            
+            # Update each agent with the sum
+            for i, agent in enumerate(self.agents):
+                agent.other_pheromones = (pheromone_sum - all_node_pheromones[i]) / (self.n_agents - 1)
             
         occupancy = [agent.occupancy_matrix for agent in self.agents]
         occupancy_sum = sum(occupancy)
