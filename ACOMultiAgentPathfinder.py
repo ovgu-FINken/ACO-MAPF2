@@ -14,7 +14,7 @@ class Agent:
                     nodelist,
                     time_horizon,
                     n_iterations=5,
-                    n_ants=10,
+                    n_episodes=10,
                     max_stored_iterations=1,
                     alpha=1,
                     beta=2,
@@ -38,12 +38,15 @@ class Agent:
         self.evaporation_rate = evaporation_rate
         self.dispersion_rate = dispersion_rate
         self.initial_epsilon = initial_epsilon
-        self._initialize_pheromone()
+        self.initialize_policy = self._initialize_pheromone
+        self.update_policy = self.update_pheromone
+        self.decision_function = self._aco_decision_function
+        self.initialize_policy()
         self.stored_paths = deque(maxlen=max_stored_iterations)
         self.occupancy_matrix = np.zeros_like(self.get_node_pheromones())
         self.other_occupancy = np.zeros_like(self.occupancy_matrix)
         self.n_iterations = n_iterations
-        self.n_ants = n_ants
+        self.n_episodes = n_episodes
         self.collision_weight = collision_weight
         self.length_weight = 1.0 - collision_weight if length_weight is None else length_weight
 
@@ -149,20 +152,19 @@ class Agent:
 
     def _heuristic(self, v, goal):
         return nx.shortest_path_length(self.G, v, goal)
+    
+    def _aco_decision_function(self, current, neighbors, goal):
+        probabilities = self.calculate_probabilities(current, neighbors, goal)
+        probabilities = probabilities / np.sum(probabilities)
+        return neighbors[np.random.choice(len(probabilities), p=probabilities)]
 
-    def epsilon_greedy_decision(self, current, neighbors, goal, epsilon, use_adjacent=False):
+    def epsilon_greedy_decision(self, current, neighbors, goal, epsilon):
         if random.random() < epsilon:
-            # Explore: choose a random neighbor
             return random.choice(neighbors)
         else:
-            # Exploit: choose the best neighbor based on probabilities
-            if use_adjacent:
-                probabilities = self.calculate_probabilities_with_adjacent(current, neighbors, goal)
-            else:
-                probabilities = self.calculate_probabilities(current, neighbors, goal)
-            return neighbors[np.argmax(probabilities)]
+            return self.decision_function(current, neighbors, goal)
 
-    def ant_tour(self, iteration, max_iterations, use_adjacent=False):
+    def run_episode(self, iteration, max_iterations):
         current = (self.start_position, 0)
         path = [current]
         
@@ -174,7 +176,7 @@ class Agent:
             if not neighbors:
                 return None  # No valid path
 
-            next_node = self.epsilon_greedy_decision(current, neighbors, self.goal_position, epsilon, use_adjacent)
+            next_node = self.epsilon_greedy_decision(current, neighbors, self.goal_position, epsilon)
             path.append(next_node)
             current = next_node
 
@@ -184,14 +186,14 @@ class Agent:
     def run_aco_iterations(self):
         all_paths = []
         for iteration in range(self.n_iterations):
-            ant_paths = []
-            for _ in range(self.n_ants):
-                path = self.ant_tour(iteration, self.n_iterations)
+            paths = []
+            for _ in range(self.n_episodes):
+                path = self.run_episode(iteration, self.n_iterations)
                 if path is not None:
-                    ant_paths.append(path)
-            if ant_paths:
-                all_paths.extend(ant_paths)
-                self.update_pheromone(ant_paths)
+                    paths.append(path)
+            if paths:
+                all_paths.extend(paths)
+                self.update_policy(paths)
         
         self.stored_paths.append(all_paths)
         self.update_occupancy_matrix()
@@ -206,7 +208,7 @@ class Agent:
         self.occupancy_matrix /= sum([len(path) for path in self.stored_paths])
 
 class ACOMultiAgentPathfinder:
-    def __init__(self, graph, start_positions, goal_positions, n_ants=10, n_iterations=100, alpha=1, beta=2, gamma=4, evaporation_rate=0.1, dispersion_rate=0.1, communication_interval=10, initial_epsilon=1.0,
+    def __init__(self, graph, start_positions, goal_positions, n_episodes=10, n_iterations=100, alpha=1, beta=2, gamma=4, evaporation_rate=0.1, dispersion_rate=0.1, communication_interval=10, initial_epsilon=1.0,
                     collision_weight=0.3,
                     length_weight=None,
                     horizon=None,
@@ -215,7 +217,7 @@ class ACOMultiAgentPathfinder:
         self.G = graph
         self.nodelist = list(self.G.nodes())
         self.n_agents = len(start_positions)
-        self.n_ants = n_ants
+        self.n_episodes = n_episodes
         self.n_iterations = n_iterations
         self.communication_interval = communication_interval
 
@@ -236,7 +238,7 @@ class ACOMultiAgentPathfinder:
                             evaporation_rate=evaporation_rate, 
                             dispersion_rate=dispersion_rate,
                             initial_epsilon=initial_epsilon, 
-                            n_ants=self.n_ants,
+                            n_episodes=self.n_episodes,
                             n_iterations=self.communication_interval,
                             collision_weight=collision_weight,
                             length_weight=length_weight,
@@ -306,7 +308,7 @@ class ACOMultiAgentPathfinder:
     def _generate_greedy_solution(self):
         greedy_paths = []
         for agent in self.agents:
-            path = agent.ant_tour(self.n_iterations, self.n_iterations, use_adjacent=False)  # Use the last iteration's epsilon
+            path = agent.run_episode(self.n_iterations, self.n_iterations)  # Use the last iteration's epsilon
             if path is None:
                 return None
             greedy_paths.append(path)

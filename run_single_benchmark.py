@@ -14,7 +14,7 @@ def run_single_benchmark(benchmark_index):
     
     # Example planner parameters (you may want to load these from a config file)
     planner_params = {
-        'n_ants': 20,
+        'n_episodes': 20,
         'n_iterations': 200,
         'alpha': 1.8,
         'beta': 5,
