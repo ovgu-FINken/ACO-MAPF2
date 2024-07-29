@@ -153,18 +153,20 @@ class Agent:
     def _heuristic(self, v, goal):
         return nx.shortest_path_length(self.G, v, goal)
     
-    def _aco_decision_function(self, current, neighbors, goal):
+    def _aco_decision_function(self, current, neighbors, goal, greedy=False):
         probabilities = self.calculate_probabilities(current, neighbors, goal)
+        if greedy:
+            return neighbors[np.argmax(probabilities)]
         probabilities = probabilities / np.sum(probabilities)
         return neighbors[np.random.choice(len(probabilities), p=probabilities)]
 
-    def epsilon_greedy_decision(self, current, neighbors, goal, epsilon):
-        if random.random() < epsilon:
+    def epsilon_greedy_decision(self, current, neighbors, goal, epsilon, greedy=False):
+        if random.random() < epsilon and not greedy:
             return random.choice(neighbors)
         else:
-            return self.decision_function(current, neighbors, goal)
+            return self.decision_function(current, neighbors, goal, greedy=greedy)
 
-    def run_episode(self, iteration, max_iterations):
+    def run_episode(self, iteration, max_iterations, greedy=False):
         current = (self.start_position, 0)
         path = [current]
         
@@ -176,7 +178,7 @@ class Agent:
             if not neighbors:
                 return None  # No valid path
 
-            next_node = self.epsilon_greedy_decision(current, neighbors, self.goal_position, epsilon)
+            next_node = self.epsilon_greedy_decision(current, neighbors, self.goal_position, epsilon, greedy=greedy)
             path.append(next_node)
             current = next_node
 
@@ -188,7 +190,7 @@ class Agent:
         for iteration in range(self.n_iterations):
             paths = []
             for _ in range(self.n_episodes):
-                path = self.run_episode(iteration, self.n_iterations)
+                path = self.run_episode(iteration, self.n_iterations, greedy=False)
                 if path is not None:
                     paths.append(path)
             if paths:
@@ -308,7 +310,7 @@ class ACOMultiAgentPathfinder:
     def _generate_greedy_solution(self):
         greedy_paths = []
         for agent in self.agents:
-            path = agent.run_episode(self.n_iterations, self.n_iterations)  # Use the last iteration's epsilon
+            path = agent.run_episode(self.n_iterations, self.n_iterations, greedy=True)  # Use the last iteration's epsilon
             if path is None:
                 return None
             greedy_paths.append(path)
