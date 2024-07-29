@@ -1,11 +1,5 @@
 # benchmark.py
-
 from random import sample
-import networkx as nx
-from itertools import cycle
-from ACOMultiAgentPathfinder import ACOMultiAgentPathfinder
-import logging
-
 import networkx as nx
 from itertools import cycle
 from ACOMultiAgentPathfinder import ACOMultiAgentPathfinder
@@ -19,7 +13,7 @@ class Benchmark:
         self.graph_generator = graph_generator
         self.start_goal_generator = start_goal_generator
 
-    def run(self, benchmark_params: dict, planner_params: dict):
+    def run(self, benchmark_params: dict, planner_params: dict, pathfinder=ACOMultiAgentPathfinder):
         G = self.graph_generator(**benchmark_params)
         start_positions, goal_positions = self.start_goal_generator(G, **benchmark_params)
         
@@ -33,7 +27,7 @@ class Benchmark:
         assert all(goal in G.nodes() for goal in goal_positions)
         assert all(start in G.nodes() for start in start_positions)
 
-        solver = ACOMultiAgentPathfinder(G, start_positions, goal_positions, **planner_params)
+        solver = pathfinder(G, start_positions, goal_positions, **planner_params)
         solution = solver.solve()
 
         return solution, G

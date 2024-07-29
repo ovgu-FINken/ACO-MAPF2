@@ -54,7 +54,7 @@ if __name__ == "__main__":
     
     # Example planner parameters
     planner_params = {
-        'n_ants': 20,
+        'n_episodes': 20,
         'n_iterations': 100,
         'alpha': 1,
         'beta': 2,
