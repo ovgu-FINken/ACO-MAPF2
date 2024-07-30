@@ -131,10 +131,7 @@ class Agent:
             path_lengths.append(len(path) - 1)
             
             # Calculate collision probability for the path
-            collision_prob = 0
-            for node, time in path:
-                collision_prob += self.other_occupancy[self.nodelist.index(node), time]
-            collision_prob /= len(path)
+            collision_prob = self._calculate_collision_probability(path)
             collision_probs.append(collision_prob)
         
         if path_lengths:
