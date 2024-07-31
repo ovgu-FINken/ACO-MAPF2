@@ -29,15 +29,8 @@ def run_benchmark(args):
     benchmark, solver_params, seed = args
     np.random.seed(seed)
     solution = benchmark.run(**solver_params)
-    if solution:
-        for path, goal in zip(solution, benchmark.goal_positions):
-            if path[-1] != goal:
-                return 0, 10_000 # failure, return 0 and 10_000 for path length
-        path_lengths = [len(path) - 1 for path in solution]
-        avg_path_length = np.mean(path_lengths)
-        return 1, avg_path_length  # Success, return 1 and the average path length
-    else:
-        return 0, np.inf  # Failure, return 0 and infinity for path length
+    result = benchmark.evaluate(solution)
+    return result['success'], result['mean_path_length']
 
 # Global variables to keep track of the optimization process
 best_observed_params = None

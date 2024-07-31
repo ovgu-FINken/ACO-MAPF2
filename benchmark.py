@@ -35,6 +35,23 @@ class Benchmark:
         solution = solver.solve()
         return solution
     
+    def evaluate(self, solution):
+        success = solution is not None and all(path[-1][0] == goal for path, goal in zip(solution, self.goal_positions))
+        if solution:
+            path_lengths = [len(path) - 1 for path in solution]
+            avg_path_length = sum(path_lengths) / len(path_lengths)
+            max_path_length = max(path_lengths)
+        else:
+            avg_path_length = max_path_length = float('inf')
+        
+        return {
+            'benchmark': str(self),
+            'benchmark_type': self.name,
+            'success': success,
+            'longest_path': max_path_length,
+            'mean_path_length': avg_path_length
+        }
+    
     def __str__(self):
         return self.name + '(' + ', '.join(f'{k}={v}' for k, v in self.benchmark_params.items()) + ')'
 

@@ -31,21 +31,8 @@ def run_single_benchmark(benchmark_index):
     solution = benchmark.run(**planner_params)
     
     # Process and save results
-    success = solution is not None and all(path[-1] == goal for path, goal in zip(solution, benchmark.goal_positions))
-    if success:
-        path_lengths = [len(path) - 1 for path in solution]
-        avg_path_length = sum(path_lengths) / len(path_lengths)
-        max_path_length = max(path_lengths)
-    else:
-        avg_path_length = max_path_length = float('inf')
-    
-    results = {
-        'benchmark': str(benchmark),
-        'benchmark_type': benchmark.name,
+    results = benchmark.evaluate(solution) | {
         'n_agents': len(benchmark.goal_positions),
-        'success': success,
-        'longest_path': max_path_length,
-        'mean_path_length': avg_path_length,
         'run_number' : benchmark_index // len(all_benchmarks),
         **benchmark.benchmark_params,
         **planner_params
