@@ -31,7 +31,7 @@ def run_single_benchmark(benchmark_index):
     solution = benchmark.run(**planner_params)
     
     # Process and save results
-    success = solution is not None
+    success = solution is not None and all(path[-1] == goal for path, goal in zip(solution, benchmark.goal_positions))
     if success:
         path_lengths = [len(path) - 1 for path in solution]
         avg_path_length = sum(path_lengths) / len(path_lengths)
