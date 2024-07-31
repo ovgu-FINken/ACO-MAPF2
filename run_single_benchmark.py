@@ -1,15 +1,15 @@
 import sys
 import yaml
 from benchmark import all_benchmarks
-from ACOMultiAgentPathfinder import ACOMultiAgentPathfinder
 from datetime import datetime
 import random
 import logging
+from pathlib import Path
 
 def run_single_benchmark(benchmark_index):
-    benchmark, benchmark_params = all_benchmarks[benchmark_index % len(all_benchmarks)]
+    benchmark = all_benchmarks[benchmark_index % len(all_benchmarks)]
     print("running benchmark for benchmark index: " + str(benchmark_index))
-    print("benchmark name: " + benchmark.name)
+    print("benchmark: " + str(benchmark))
     random.seed(benchmark_index)
     
     # Example planner parameters (you may want to load these from a config file)
@@ -24,10 +24,11 @@ def run_single_benchmark(benchmark_index):
         'communication_interval': 5,
         'collision_weight': 0.5,
         'initial_epsilon': 0.2,
+        'method': 'aco',
     }
     
     # Run the benchmark
-    solution, G = benchmark.run(benchmark_params, planner_params)
+    solution = benchmark.run(**planner_params)
     
     # Process and save results
     success = solution is not None
@@ -39,19 +40,22 @@ def run_single_benchmark(benchmark_index):
         avg_path_length = max_path_length = float('inf')
     
     results = {
-        'benchmark': benchmark.name,
-        'n_agents': len(G.nodes()),
+        'benchmark': str(benchmark),
+        'benchmark_type': benchmark.name,
+        'n_agents': len(benchmark.goal_positions),
         'success': success,
         'longest_path': max_path_length,
         'mean_path_length': avg_path_length,
         'run_number' : benchmark_index // len(all_benchmarks),
-        **benchmark_params,
+        **benchmark.benchmark_params,
         **planner_params
     }
     
     # Save results to YAML file
     date_str = datetime.now().strftime("%Y%m%d_%H%M%S")
-    filename = f'results/benchmark_{benchmark.name}_{date_str}.yaml'
+
+    filename = f'results/benchmark_{benchmark}_{date_str}.yaml'
+    Path.mkdir(Path(filename).parent, exist_ok=True, parents=True)
     
     with open(filename, 'w') as f:
         yaml.dump(results, f)

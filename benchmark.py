@@ -8,35 +8,41 @@ import pandas as pd
 from tqdm import tqdm
 
 class Benchmark:
-    def __init__(self, name, graph_generator, start_goal_generator):
+    def __init__(self, name, graph_generator, start_goal_generator, **benchmark_params):
         self.name = name
         self.graph_generator = graph_generator
         self.start_goal_generator = start_goal_generator
+        self.benchmark_params = benchmark_params
+        self.G = self.graph_generator(**benchmark_params)
+        self.start_positions, self.goal_positions = self.start_goal_generator(self.G, **benchmark_params)
+        assert len(self.start_positions) == len(self.goal_positions), f"Unequal number of start and goal positions: {len(self.start_positions)} != {len(self.goal_positions)} for benchmark {str(self)}"
+        assert all(goal in self.G.nodes() for goal in self.goal_positions), f"Invalid goal position: {self.goal_positions} not in graph {self.G} for benchmark {str(self)}"
+        assert all(start in self.G.nodes() for start in self.start_positions), f"Invalid start position: {self.start_positions} not in graph {self.G} for benchmark {str(self)}"
 
-    def run(self, benchmark_params: dict, planner_params: dict, pathfinder=ACOMultiAgentPathfinder):
-        G = self.graph_generator(**benchmark_params)
-        start_positions, goal_positions = self.start_goal_generator(G, **benchmark_params)
-        
+
+    def run(self, pathfinder=ACOMultiAgentPathfinder, **planner_params):
         logging.info(f"\nRunning {self.name}:")
-        logging.info(f"Graph size: {len(G.nodes())}")
-        logging.info(f"Number of agents: {len(start_positions)}")
-        for i, (start, goal) in enumerate(zip(start_positions, goal_positions)):
+        logging.info(f"Graph size: {len(self.G.nodes())}")
+        logging.info(f"Number of agents: {len(self.start_positions)}")
+        for i, (start, goal) in enumerate(zip(self.start_positions, self.goal_positions)):
             logging.info(f"Agent {i+1}: {start} -> {goal}")
         
         # assert all goals and start positions are within the graph
-        assert all(goal in G.nodes() for goal in goal_positions)
-        assert all(start in G.nodes() for start in start_positions)
+        assert all(goal in self.G.nodes() for goal in self.goal_positions)
+        assert all(start in self.G.nodes() for start in self.start_positions)
 
-        solver = pathfinder(G, start_positions, goal_positions, **planner_params)
+        solver = pathfinder(self.G, self.start_positions, self.goal_positions, **planner_params)
         solution = solver.solve()
+        return solution
+    
+    def __str__(self):
+        return self.name + '(' + ', '.join(f'{k}={v}' for k, v in self.benchmark_params.items()) + ')'
 
-        return solution, G
-
-def run_benchmark(benchmark, benchmark_params: dict, planner_params: dict, n_trials=3):
+def run_benchmark(benchmark, n_trials=3, **planner_params):
     results = []
-    for trial in tqdm(range(n_trials), desc=f"Running {benchmark.name}"):
-        solution, G = benchmark.run(benchmark_params, planner_params)
-        success = solution is not None
+    for trial in tqdm(range(n_trials), desc=f"Running {str(benchmark)}"):
+        solution, G = benchmark.run(planner_params)
+        success = solution is not None and all(path[-1] == goal for path, goal in zip(solution, benchmark.goal_positions))
         if success:
             path_lengths = [len(path) - 1 for path in solution]
             avg_path_length = sum(path_lengths) / len(path_lengths)
@@ -45,13 +51,13 @@ def run_benchmark(benchmark, benchmark_params: dict, planner_params: dict, n_tri
             avg_path_length = max_path_length = float('inf')
         
         results.append({
-            'benchmark': benchmark.name,
+            'benchmark': str(benchmark),
             'trial': trial,
             'n_agents': len(G.nodes()),
             'success': success,
             'longest_path': max_path_length,
             'mean_path_length': avg_path_length,
-            **benchmark_params,
+            **benchmark.benchmark_params,
             **planner_params
         })
     
@@ -64,6 +70,9 @@ def run_benchmark(benchmark, benchmark_params: dict, planner_params: dict, n_tri
     
     return df
 
+def run_all_benchmarks(n_trials=3, **planner_params):
+    benchmarks = [Benchmark(name, graph_generator, start_goal_generator, **benchmark_params) for name, graph_generator, start_goal_generator, benchmark_params in all_benchmarks]
+    return pd.concat([run_benchmark(benchmark, n_trials, **planner_params) for benchmark in benchmarks])
 
 def grid_graph_generator(width, height, **kwargs):
     return nx.grid_2d_graph(width, height)
@@ -145,8 +154,8 @@ def linear_graph_generator(length, **kwargs):
 
 def linear_start_goal_generator(G, n_agents, **kwargs):
     length = len(G)
-    start_positions = [ (i + 2) // 2 if i % 2 == 0 else length - 1 - i // 2 for i in range(n_agents)]
-    goal_positions = [ (i + 2) // 2 if i % 2 != 0 else length - 1 - i // 2 for i in range(n_agents)]
+    start_positions = [ (i + 2) // 2 if i % 2 == 0 else length - 2 - i // 2 for i in range(n_agents)]
+    goal_positions = [ (i + 2) // 2 if i % 2 != 0 else length - 2 - i // 2 for i in range(n_agents)]
     
     return start_positions, goal_positions
 
@@ -154,14 +163,14 @@ def linear_start_goal_generator(G, n_agents, **kwargs):
 
 
 # Define benchmark instances
-grid_benchmark = Benchmark("Grid", grid_graph_generator, grid_start_goal_generator)
-random_grid_benchmark = Benchmark("Random Grid", grid_graph_generator, random_grid_start_goal_generator)
-passage_benchmark = Benchmark("Passage", passage_graph_generator, passage_start_goal_generator)
-star_benchmark = Benchmark("Star", star_graph_generator, star_start_goal_generator)
-linear_benchmark = Benchmark("Linear", linear_graph_generator, linear_start_goal_generator)
+grid_benchmark = ("Grid", grid_graph_generator, grid_start_goal_generator)
+random_grid_benchmark = ("Random Grid", grid_graph_generator, random_grid_start_goal_generator)
+#passage_benchmark = ("Passage", passage_graph_generator, passage_start_goal_generator)
+star_benchmark = ("Star", star_graph_generator, star_start_goal_generator)
+linear_benchmark = ("Linear", linear_graph_generator, linear_start_goal_generator)
 
 # List of all benchmarks
-all_benchmarks = [
+all_benchmark_params = [
     (linear_benchmark, {'length': 4, 'n_agents': 2}),
     (linear_benchmark, {'length': 5, 'n_agents': 2}),
     (linear_benchmark, {'length': 10, 'n_agents': 2}),
@@ -197,6 +206,5 @@ all_benchmarks = [
     (random_grid_benchmark, {'width': 8, 'height': 5, 'n_agents': 10}),
     # takes much too long:
     #(random_grid_benchmark, {'width': 10, 'height': 10, 'n_agents': 30}),
-    (passage_benchmark, {'width': 10, 'height': 5, 'passage_length': 2}),
-    (passage_benchmark, {'width': 10, 'height': 5, 'passage_length': 10}),
 ]
+all_benchmarks = [Benchmark(*b[0], **b[1]) for b in all_benchmark_params]

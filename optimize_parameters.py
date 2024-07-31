@@ -17,28 +17,22 @@ from yaml_utils import save_results, load_results
 # Define the parameter space
 space = [
     Real(0.5, 2.0, name='alpha'),
-    Real(0.1, 5.0, name='beta'),
-    Real(0.1, 5.0, name='gamma'),
+    #Real(0.1, 5.0, name='beta'),
+    #Real(0.1, 5.0, name='gamma'),
     #Real(0.0, 0.3, name='evaporation_rate'),
     #Real(0.0, 0.3, name='dispersion_rate'),
-    #Real(0.0, 1.0, name='initial_epsilon'),
-    #Real(0.0, 1.0, name='collision_weight'),
+    Real(0.0, 1.0, name='initial_epsilon'),
+    Real(0.0, 1.0, name='collision_weight'),
 ]
 
 def run_benchmark(args):
-    benchmark, benchmark_params, solver_params, seed = args
+    benchmark, solver_params, seed = args
     np.random.seed(seed)
-    G = benchmark.graph_generator(**benchmark_params)
-    start_positions, goal_positions = benchmark.start_goal_generator(G, **benchmark_params)
-    if not all(goal in G.nodes() for goal in goal_positions):
-        logging.warn(f"Goal not in graph")
-        return 0, np.inf
-    if not all(start in G.nodes() for start in start_positions):
-        logging.warn(f"start not in graph")
-        return 0, np.inf
-    solver = ACOMultiAgentPathfinder(G, start_positions, goal_positions, **solver_params)
-    solution = solver.solve()
+    solution = benchmark.run(**solver_params)
     if solution:
+        for path, goal in zip(solution, benchmark.goal_positions):
+            if path[-1] != goal:
+                return 0, 10_000 # failure, return 0 and 10_000 for path length
         path_lengths = [len(path) - 1 for path in solution]
         avg_path_length = np.mean(path_lengths)
         return 1, avg_path_length  # Success, return 1 and the average path length
@@ -57,11 +51,22 @@ def objective(**params):
     global best_observed_params, best_observed_score, iteration, X, y
     iteration += 1
     
+    planner_params = {
+        'n_episodes': 20,
+        'n_iterations': 200,
+        'alpha': 1,
+        'beta': 2,
+        'gamma': 1,
+        'evaporation_rate': 0.1,
+        'communication_interval': 5,
+        'initial_epsilon': 0.8,
+        'method': 'q-learning',
+    }
     all_args = []
-    for benchmark, benchmark_params in all_benchmarks:
+    for benchmark in all_benchmarks:
         for _ in range(11):  # 3 runs per benchmark
             seed = np.random.randint(0, 10000)
-            all_args.append((benchmark, benchmark_params, params, seed))
+            all_args.append((benchmark, planner_params | params, seed))
     
     with multiprocessing.Pool() as pool:
         results = pool.map(run_benchmark, all_args)

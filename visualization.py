@@ -1,8 +1,15 @@
+import io
 import streamlit as st
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 import numpy as np
+import networkx as nx
+import matplotlib.pyplot as plt
+from matplotlib.animation import FuncAnimation
+from benchmark import all_benchmarks
+from ACOMultiAgentPathfinder import ACOMultiAgentPathfinder
+from PIL import Image
 
 # Load the data
 @st.cache_data
@@ -142,3 +149,101 @@ fig = px.scatter(custom_df, x=x_param, y=y_param, color='success_int', size='suc
                  title=f'{x_param.capitalize()} vs {y_param.capitalize()}')
 fig.update_layout(coloraxis_colorbar=dict(tickformat=".0%"))
 st.plotly_chart(fig)
+
+def run_benchmark(benchmark, method):
+    solution = benchmark.run(
+        n_episodes=20, n_iterations=100,
+        alpha=1, beta=2, gamma=1,
+        evaporation_rate=0.1, dispersion_rate=0.1,
+        communication_interval=5, initial_epsilon=0.8,
+        collision_weight=0.3, method=method
+    )
+    
+    
+    return benchmark.G, benchmark.start_positions, benchmark.goal_positions, solution
+
+def visualize_solution(G, solution, start_positions, goal_positions):
+    pos = nx.spring_layout(G)
+    
+    frames = []
+    max_path_length = max(len(path) for path in solution)
+    
+    for frame in range(max_path_length):
+        fig, ax = plt.subplots(figsize=(8, 6))
+        nx.draw(G, pos, node_color='lightgray', node_size=500, ax=ax)
+        
+        # Draw start and goal positions
+        nx.draw_networkx_nodes(G, pos, nodelist=start_positions, node_color='green', node_size=300, ax=ax)
+        nx.draw_networkx_nodes(G, pos, nodelist=goal_positions, node_color='red', node_size=200, ax=ax)
+        
+        # Draw agent positions at current frame
+        for i, path in enumerate(solution):
+            if frame < len(path):
+                node = path[frame][0]
+                nx.draw_networkx_nodes(G, pos, nodelist=[node], node_color=f'C{i}', node_size=600, ax=ax)
+        
+        ax.set_title(f'Time step: {frame}')
+        plt.tight_layout()
+        
+        # Save the figure to a BytesIO object
+        buf = io.BytesIO()
+        plt.savefig(buf, format='png')
+        buf.seek(0)
+        frames.append(Image.open(buf))
+        plt.close(fig)
+    
+    # Create a GIF from the frames
+    gif_buf = io.BytesIO()
+    frames[0].save(gif_buf, format='GIF', append_images=frames[1:], save_all=True, duration=1000, loop=0)
+    gif_buf.seek(0)
+    
+    return gif_buf
+# Add a new section for running benchmarks
+st.header('Run Benchmark')
+
+# Create a dropdown to select the benchmark
+benchmark_names = [str(b) for b in all_benchmarks]
+selected_benchmark_name = st.selectbox('Select Benchmark', benchmark_names)
+
+# Find the selected benchmark and its parameters
+selected_benchmark = next(b for b in all_benchmarks if str(b) == selected_benchmark_name)
+
+# Display and allow editing of benchmark parameters
+st.subheader('Benchmark Parameters')
+
+def format_path(path):
+    return ' -> '.join(str(node[0]) for node in path)
+
+# Add a button to run the benchmark
+if st.button('Run Benchmark'):
+    # Run the benchmark with both methods
+    aco_results = run_benchmark(selected_benchmark, 'aco')
+    q_learning_results = run_benchmark(selected_benchmark, 'q-learning')
+
+    # Display results
+    st.subheader('Results')
+    col1, col2 = st.columns(2)
+
+    for column, method, results in [(col1, 'ACO', aco_results), (col2, 'Q-Learning', q_learning_results)]:
+        with column:
+            st.write(f'{method} Results')
+            G, start_positions, goal_positions, solution = results
+            if solution:
+                st.write(f'Success: Yes')
+                path_lengths = [len(path) - 1 for path in solution]
+                st.write(f'Average Path Length: {sum(path_lengths) / len(path_lengths):.2f}')
+                st.write(f'Max Path Length: {max(path_lengths)}')
+                
+                # Visualize solution
+                gif_buf = visualize_solution(G, solution, start_positions, goal_positions)
+                st.image(gif_buf.getvalue(), caption=f'{method} Solution Animation')
+                st.write("Paths:")
+                for i, (start, goal, path) in enumerate(zip(start_positions, goal_positions, solution)):
+                    st.write(f"Agent {i}: {start} -> {goal}")
+                    st.write(format_path(path))
+                    st.write(f"Path length: {len(path) - 1}")
+                    if path[-1][0] != goal:
+                        st.write(f"Warning: Path does not end at the goal location!")
+                    st.write("---")
+            else:
+                st.write('Success: No')

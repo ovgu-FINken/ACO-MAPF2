@@ -82,32 +82,19 @@ class Agent:
         return node_pheromones
 
     def update_q(self, paths):
-        for path in paths:
-            # Calculate the return (G) for this path
-            path_length = len(path) - 1
-            collision_prob = self._calculate_collision_probability(path)
+        qualities = self._calculate_path_qualities(paths)
+        for quality, path in zip(qualities, paths):
             
-            # Normalize path length and collision probability
-            max_length = self.time_horizon
-            normalized_length = (max_length - path_length) / max_length
-            
-            # Combine length and collision probability
-            G = self.length_weight * normalized_length + self.collision_weight * (1 - collision_prob)
-
-            # Update Q-values for each state-action pair in the path
             for t in range(len(path) - 1):
                 state = path[t]
                 next_state = path[t + 1]
-                action = next_state[0]  # The node we're moving to
 
                 # Current Q-value
                 current_q = self.G_t[state][next_state]['Q']
 
                 # Update Q-value
-                self.G_t[state][next_state]['Q'] += self.alpha * (G - current_q)
+                self.G_t[state][next_state]['Q'] += self.alpha * (quality - current_q)
 
-                # Discount the return for the next state-action pair
-                G *= self.gamma
 
     def _calculate_collision_probability(self, path):
         collision_prob = 0
@@ -115,6 +102,35 @@ class Agent:
             collision_prob += self.other_occupancy[self.nodelist.index(node), time]
         return collision_prob / len(path)    
     
+    def _calculate_path_length(self, path):
+        if path[-1] == self.goal_position:
+            additional_length = 0
+        else:
+            additional_length = nx.shortest_path_length(self.G, path[-1][0], self.goal_position)
+        return len(path) + additional_length - 1
+    
+    def _calculate_path_qualities(self, paths):
+        if not paths:
+            return []
+        path_lengths = [ self._calculate_path_length(path) for path in paths ]
+        collision_probs = [ self._calculate_collision_probability(path) for path in paths ]
+        
+        if path_lengths:
+            max_length = max(path_lengths)
+            min_length = min(path_lengths)
+            max_collision_prob = max(collision_probs)
+            min_collision_prob = min(collision_probs)
+            
+            # Normalize path lengths and collision probabilities to [0, 1] range
+            # bad: 0, good: 1
+            normalized_lengths = [(max_length - length) / (max_length - min_length) if max_length != min_length else 1 for length in path_lengths]
+            normalized_collision_probs = [(max_collision_prob - prob) / (max_collision_prob - min_collision_prob) if max_collision_prob != min_collision_prob else 1 for prob in collision_probs]
+            
+            # Combine length and collision probability (you can adjust the weights)
+            # bad: 0, good: 1
+            combined_scores = [self.length_weight * length + self.collision_weight * (1 - collision_prob) for length, collision_prob in zip(normalized_lengths, normalized_collision_probs)]
+        return combined_scores
+            
 
     def update_pheromone(self, paths):
         # Evaporation
@@ -124,29 +140,8 @@ class Agent:
         # Remove duplicate paths
         unique_paths = list(set(tuple(path) for path in paths))
         
-        # Calculate path lengths and collision probabilities
-        path_lengths = []
-        collision_probs = []
-        for path in unique_paths:
-            path_lengths.append(len(path) - 1)
-            
-            # Calculate collision probability for the path
-            collision_prob = self._calculate_collision_probability(path)
-            collision_probs.append(collision_prob)
-        
-        if path_lengths:
-            max_length = max(path_lengths)
-            min_length = min(path_lengths)
-            max_collision_prob = max(collision_probs)
-            min_collision_prob = min(collision_probs)
-            
-            # Normalize path lengths and collision probabilities to [0, 1] range
-            normalized_lengths = [(max_length - length) / (max_length - min_length) if max_length != min_length else 1 for length in path_lengths]
-            normalized_collision_probs = [(max_collision_prob - prob) / (max_collision_prob - min_collision_prob) if max_collision_prob != min_collision_prob else 1 for prob in collision_probs]
-            
-            # Combine length and collision probability (you can adjust the weights)
-            combined_scores = [self.length_weight * length + self.collision_weight * (1 - collision_prob) for length, collision_prob in zip(normalized_lengths, normalized_collision_probs)]
-            
+        if unique_paths:
+            combined_scores = self._calculate_path_qualities(unique_paths) 
             # Update pheromones
             for path, score in zip(unique_paths, combined_scores):
                 for i in range(len(path) - 1):
@@ -285,7 +280,7 @@ class ACOMultiAgentPathfinder:
         self.method = method
 
         if horizon is None:
-            self.time_horizon = int(np.sqrt(len(self.G.nodes()))) * 3
+            self.time_horizon = int(np.sqrt(len(self.G.nodes())+20)*3)
         else:
             self.time_horizon = horizon
 
