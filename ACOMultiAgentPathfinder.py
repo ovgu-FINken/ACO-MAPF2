@@ -47,6 +47,10 @@ class Agent:
             self.initialize_policy = self._initialize_q
             self.update_policy = self.update_q
             self.decision_function = self._q_decision_function
+        elif method == "simplified-q-learning":
+            self.initialize_policy = self._initialize_q
+            self.update_policy = self.update_simplified_q
+            self.decision_function = self._q_decision_function
         else:
             raise NotImplementedError(f"Method {method} is not implemented")
         self.initialize_policy()
@@ -82,13 +86,29 @@ class Agent:
         return node_pheromones
 
     def update_q(self, paths):
-        qualities = self._calculate_path_qualities(paths)
-        for quality, path in zip(qualities, paths):
-            
+        for path in paths:
+            if not path:
+                continue
             for t in range(len(path) - 1):
                 state = path[t]
                 next_state = path[t + 1]
+                if not len(path[t+1:]):
+                    break
+                quality = self._calculate_path_qualities([path[t+1:]], normalize=False)[0]
+                
+                # Current Q-value
+                current_q = self.G_t[state][next_state]['Q']
 
+                # Update Q-value
+                self.G_t[state][next_state]['Q'] += self.alpha * (quality - current_q)
+                
+    def update_simplified_q(self, paths):
+        qualities = self._calculate_path_qualities(paths)
+        for path, quality in zip(paths, qualities):
+            for t in range(len(path) - 1):
+                state = path[t]
+                next_state = path[t + 1]
+                
                 # Current Q-value
                 current_q = self.G_t[state][next_state]['Q']
 
@@ -100,36 +120,37 @@ class Agent:
         collision_prob = 0
         for node, time in path:
             collision_prob += self.other_occupancy[self.nodelist.index(node), time]
-        return collision_prob / len(path)    
+        return collision_prob / len(path)
     
     def _calculate_path_length(self, path):
-        if path[-1] == self.goal_position:
+        if path[-1][0] == self.goal_position:
             additional_length = 0
         else:
             additional_length = nx.shortest_path_length(self.G, path[-1][0], self.goal_position)
         return len(path) + additional_length - 1
     
-    def _calculate_path_qualities(self, paths):
+    def _calculate_path_qualities(self, paths, normalize=True):
         if not paths:
             return []
         path_lengths = [ self._calculate_path_length(path) for path in paths ]
         collision_probs = [ self._calculate_collision_probability(path) for path in paths ]
         
         if path_lengths:
-            max_length = max(path_lengths)
-            min_length = min(path_lengths)
-            max_collision_prob = max(collision_probs)
-            min_collision_prob = min(collision_probs)
-            
             # Normalize path lengths and collision probabilities to [0, 1] range
             # bad: 0, good: 1
-            normalized_lengths = [(max_length - length) / (max_length - min_length) if max_length != min_length else 1 for length in path_lengths]
-            normalized_collision_probs = [(max_collision_prob - prob) / (max_collision_prob - min_collision_prob) if max_collision_prob != min_collision_prob else 1 for prob in collision_probs]
+            if normalize:
+                max_length = max(path_lengths)
+                min_length = min(path_lengths)
+                max_collision_prob = max(collision_probs)
+                min_collision_prob = min(collision_probs)
+                path_lengths = [(max_length - length) / (max_length - min_length) if max_length != min_length else 1 for length in path_lengths]
+                collision_probs = [(max_collision_prob - prob) / (max_collision_prob - min_collision_prob) if max_collision_prob != min_collision_prob else 1 for prob in collision_probs]
             
             # Combine length and collision probability (you can adjust the weights)
             # bad: 0, good: 1
-            combined_scores = [self.length_weight * length + self.collision_weight * (1 - collision_prob) for length, collision_prob in zip(normalized_lengths, normalized_collision_probs)]
-        return combined_scores
+            combined_scores = [self.length_weight * length + self.collision_weight * (1 - collision_prob) for length, collision_prob in zip(path_lengths, collision_probs)]
+            return combined_scores
+        return []
             
 
     def update_pheromone(self, paths):

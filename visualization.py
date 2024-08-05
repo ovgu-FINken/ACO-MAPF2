@@ -17,6 +17,8 @@ def load_data():
     df = pd.read_csv('benchmark_results_detailed.csv')
     # Convert boolean success to integer (0 or 1)
     df['success_int'] = df['success'].astype(int)
+    df['benchmark'] = df['benchmark'].astype('category')
+    df['benchmark_type'] = df['benchmark_type'].astype('category')
     return df
 
 df = load_data()
@@ -32,95 +34,67 @@ col3.metric('Avg Max Path Length (successful)', f"{df[df['success']]['longest_pa
 
 # Success rate by benchmark
 st.header('Success Rate by Benchmark')
-success_by_benchmark = df.groupby('benchmark')['success_int'].mean().sort_values(ascending=False)
-fig = px.bar(success_by_benchmark, x=success_by_benchmark.index, y='success_int', 
+fig = px.histogram(df, y="benchmark", x='success_int', color="benchmark_type",
              labels={'success_int': 'Success Rate', 'benchmark': 'Benchmark'},
              title='Success Rate by Benchmark')
-fig.update_yaxes(tickformat=".0%")
+#fig.update_yaxes(tickformat=".0%")
 st.plotly_chart(fig)
 
 # Path length distribution
 st.header('Path Length Distribution (Successful Runs)')
-fig = px.box(df[df['success']], x='benchmark', y='mean_path_length', 
+fig = px.box(df[df['success']], x='benchmark', y='mean_path_length', color="benchmark_type", 
              title='Distribution of Mean Path Lengths by Benchmark')
 st.plotly_chart(fig)
 
 # Benchmark-specific parameter analysis
-st.header('Benchmark-Specific Parameter Analysis')
 
-benchmark_type = st.selectbox('Select Benchmark Type', df['benchmark'].unique())
+st.subheader(f'Prallel Coordinates')
 
-if benchmark_type == 'Linear':
-    st.subheader('Linear Benchmark Analysis')
+filter_types = st.multiselect('Benchmark Type', list(df['benchmark_type'].unique()))
+if not len(filter_types):
+    selected_df = df
+else:
+    selected_df = df.loc[df['benchmark_type'].isin(filter_types)]
+selectable_columns = selected_df.columns.tolist()
+columns = st.multiselect('Select Parameters', selectable_columns)
     
-    linear_df = df[df['benchmark'] == 'Linear'].groupby(['length', 'n_agents'])['success_int'].mean().reset_index()
-    fig = px.scatter(linear_df, x='length', y='success_int', 
-                     color='n_agents', size='success_int',
-                     labels={'length': 'Graph Length', 'success_int': 'Success Rate', 'n_agents': 'Number of Agents'},
-                     title='Linear Benchmark: Graph Length vs Success Rate')
-    fig.update_yaxes(tickformat=".0%")
-    st.plotly_chart(fig)
+grouped_df = selected_df.groupby(columns if "benchmark" in columns else ["benchmark"] + columns, dropna=True, observed=True)['success_int'].mean().reset_index().dropna(subset="success_int")
+#st.write(grouped_df.describe())
 
-elif benchmark_type == 'Star':
-    st.subheader('Star Benchmark Analysis')
-    
-    star_df = df[df['benchmark'] == 'Star'].groupby(['n_branches', 'branch_length', 'n_agents'])['success_int'].mean().reset_index()
-    fig = px.scatter(star_df, x='n_branches', y='success_int', 
-                     color='branch_length', size='n_agents',
-                     labels={'n_branches': 'Number of Branches', 'success_int': 'Success Rate', 
-                             'branch_length': 'Branch Length', 'n_agents': 'Number of Agents'},
-                     title='Star Benchmark: Number of Branches vs Success Rate')
-    fig.update_yaxes(tickformat=".0%")
-    st.plotly_chart(fig)
-    
-    # Additional plot for empty_branch parameter
-    empty_branch_df = df[df['benchmark'] == 'Star'].groupby('empty_branch')['success_int'].mean().reset_index()
-    fig = px.bar(empty_branch_df, x='empty_branch', y='success_int',
-                 labels={'empty_branch': 'Empty Branch', 'success_int': 'Success Rate'},
-                 title='Star Benchmark: Impact of Empty Branch on Success Rate')
-    fig.update_yaxes(tickformat=".0%")
-    st.plotly_chart(fig)
 
-elif benchmark_type == 'Grid':
-    st.subheader('Grid Benchmark Analysis')
-    
-    grid_df = df[df['benchmark'] == 'Grid'].groupby(['width', 'height', 'n_agents'])['success_int'].mean().reset_index()
-    fig = px.scatter_3d(grid_df, x='width', y='height', z='success_int', 
-                        color='n_agents', size='success_int',
-                        labels={'width': 'Grid Width', 'height': 'Grid Height', 'success_int': 'Success Rate', 
-                                'n_agents': 'Number of Agents'},
-                        title='Grid Benchmark: Grid Dimensions vs Success Rate')
-    fig.update_scenes(zaxis_tickformat=".0%")
-    st.plotly_chart(fig)
-    
-elif benchmark_type == 'Random Grid':
-    st.subheader('Random Grid Benchmark Analysis')
-    
-    grid_df = df[df['benchmark'] == 'Random Grid'].groupby(['width', 'height', 'n_agents'])['success_int'].mean().reset_index()
-    fig = px.scatter_3d(grid_df, x='width', y='height', z='success_int', 
-                        color='n_agents', size='success_int',
-                        labels={'width': 'Grid Width', 'height': 'Grid Height', 'success_int': 'Success Rate', 
-                                'n_agents': 'Number of Agents'},
-                        title='Random Grid Benchmark: Grid Dimensions vs Success Rate')
-    fig.update_scenes(zaxis_tickformat=".0%")
-    st.plotly_chart(fig)
+#selected_df = df.loc[df['benchmark_type'].eq(benchmark_type)].groupby(['benchmark', 'n_agents', 'alpha', 'beta', 'gamma', 'evaporation_rate', 'initial_epsilon']).mean().reset_index()
+#fig = px.parallel_categories(grouped_df.loc[:,columns+['success_int']], color='success_int', color_continuous_scale=px.colors.diverging.Tealrose, 
+#                 title='Parallel Coordinates')
 
-elif benchmark_type == 'Passage':
-    st.subheader('Passage Benchmark Analysis')
-    
-    passage_df = df[df['benchmark'] == 'Passage'].groupby(['width', 'height', 'passage_length'])['success_int'].mean().reset_index()
-    fig = px.scatter_3d(passage_df, x='width', y='height', z='success_int', 
-                        color='passage_length', size='success_int',
-                        labels={'width': 'Width', 'height': 'Height', 'success_int': 'Success Rate', 
-                                'passage_length': 'Passage Length'},
-                        title='Passage Benchmark: Dimensions vs Success Rate')
-    fig.update_scenes(zaxis_tickformat=".0%")
-    st.plotly_chart(fig)
+def mkdim(df, col):
+    # make ticks for numerical columns:
+    #if np.issubdtype(df[col].dtypes, np.number): 
+    if df[col].dtypes == 'bool':
+        print(f"{col}: {df[col].dtypes} (bool)")
+        return dict(label=col, values=df[col].astype(int), tickvals=[0, 1], ticktext=['False', 'True'])
+    if df[col].dtypes == 'category':
+        print(f"{col}: {df[col].dtypes} (category)")
+        print(f"{df[col].cat.categories}")
+        print(f"{df[col].head().cat.codes}")
+        return dict(label=col, values=df[col].cat.codes, tickvals=[i for i,_ in enumerate(df[col].cat.categories)], ticktext=df[col].cat.categories)
+    if pd.api.types.is_numeric_dtype(df[col].dtypes):
+        print(f"{col}: {df[col].dtypes} (numeric)")
+        return dict(label=col, values=df[col], range=[df[col].min(), df[col].max()])
+    return {}
+
+dim_dict = [mkdim(grouped_df, col) for col in ['success_int'] + columns]
+fig = go.Figure(
+    data=go.Parcoords(
+        line = dict(color = grouped_df['success_int'], colorscale = 'Portland_r', showscale=True),
+        dimensions=dim_dict)
+)
+#fig.update_yaxes(tickformat=".0%")
+st.plotly_chart(fig)
 
 # Scatter plot: Number of agents vs Success Rate
 st.header('Number of Agents vs Success Rate')
-agent_success = df.groupby(['benchmark', 'n_agents'])['success_int'].mean().reset_index()
-fig = px.scatter(agent_success, x='n_agents', y='success_int', color='benchmark', 
+agent_success = df.groupby(['benchmark_type', 'n_agents'])['success_int'].mean().reset_index()
+fig = px.scatter(agent_success, x='n_agents', y='success_int', color='benchmark_type', 
                  labels={'success_int': 'Success Rate', 'n_agents': 'Number of Agents'},
                  title='Number of Agents vs Success Rate')
 fig.update_yaxes(tickformat=".0%")
@@ -139,6 +113,7 @@ fig.update_layout(title='Success Rate Heatmap (Alpha vs Beta)',
                   xaxis_title='Beta', yaxis_title='Alpha')
 st.plotly_chart(fig)
 
+
 # Allow user to select parameters for custom scatter plot
 st.header('Custom Parameter Comparison')
 x_param = st.selectbox('Select X-axis parameter', params)
@@ -150,13 +125,9 @@ fig = px.scatter(custom_df, x=x_param, y=y_param, color='success_int', size='suc
 fig.update_layout(coloraxis_colorbar=dict(tickformat=".0%"))
 st.plotly_chart(fig)
 
-def run_benchmark(benchmark, method):
+def run_benchmark(benchmark, method, **params):
     solution = benchmark.run(
-        n_episodes=20, n_iterations=100,
-        alpha=1, beta=2, gamma=1,
-        evaporation_rate=0.1, dispersion_rate=0.1,
-        communication_interval=5, initial_epsilon=0.8,
-        collision_weight=0.3, method=method
+            method=method, **params
     )
     
     
@@ -214,36 +185,49 @@ st.subheader('Benchmark Parameters')
 def format_path(path):
     return ' -> '.join(str(node[0]) for node in path)
 
+params_description = dict(
+        n_episodes=(1, 20, 20, 1),
+        n_iterations=(10, 200, 100, 10),
+        alpha=(0.0, 5.0, 1.0, 0.1),
+        beta=(0.0, 5.0, 1.0, 0.1),
+        gamma=(0.0, 5.0, 1.0, 0.1),
+        evaporation_rate=(0.0, .5, 0.1, 0.01),
+        dispersion_rate=(0.0, .1, 0.01, 0.01),
+        communication_interval=(1, 20, 5, 1),
+        initial_epsilon=(0.0, 1.0, 0.8, 0.1),
+        collision_weight=(0.0, 1.0, 0.5, 0.1),
+)
+method = st.radio('Select Method', ('aco', 'q-learning', 'simplified-q-learning'))
+
+params = {}
+for param, description in params_description.items():
+    params[param] = st.slider(param, *description)
+params |= {'method': method}
+
 # Add a button to run the benchmark
 if st.button('Run Benchmark'):
     # Run the benchmark with both methods
-    aco_results = run_benchmark(selected_benchmark, 'aco')
-    q_learning_results = run_benchmark(selected_benchmark, 'q-learning')
+    results = run_benchmark(selected_benchmark, **params)
 
     # Display results
-    st.subheader('Results')
-    col1, col2 = st.columns(2)
-
-    for column, method, results in [(col1, 'ACO', aco_results), (col2, 'Q-Learning', q_learning_results)]:
-        with column:
-            st.write(f'{method} Results')
-            G, start_positions, goal_positions, solution = results
-            if solution:
-                st.write(f'Success: Yes')
-                path_lengths = [len(path) - 1 for path in solution]
-                st.write(f'Average Path Length: {sum(path_lengths) / len(path_lengths):.2f}')
-                st.write(f'Max Path Length: {max(path_lengths)}')
-                
-                # Visualize solution
-                gif_buf = visualize_solution(G, solution, start_positions, goal_positions)
-                st.image(gif_buf.getvalue(), caption=f'{method} Solution Animation')
-                st.write("Paths:")
-                for i, (start, goal, path) in enumerate(zip(start_positions, goal_positions, solution)):
-                    st.write(f"Agent {i}: {start} -> {goal}")
-                    st.write(format_path(path))
-                    st.write(f"Path length: {len(path) - 1}")
-                    if path[-1][0] != goal:
-                        st.write(f"Warning: Path does not end at the goal location!")
-                    st.write("---")
-            else:
-                st.write('Success: No')
+    st.subheader(f'{method} results')
+    G, start_positions, goal_positions, solution = results
+    if solution:
+        st.write(f'Success: Yes')
+        path_lengths = [len(path) - 1 for path in solution]
+        st.write(f'Average Path Length: {sum(path_lengths) / len(path_lengths):.2f}')
+        st.write(f'Max Path Length: {max(path_lengths)}')
+        
+        # Visualize solution
+        gif_buf = visualize_solution(G, solution, start_positions, goal_positions)
+        st.image(gif_buf.getvalue(), caption=f'{method} Solution Animation')
+        st.write("Paths:")
+        for i, (start, goal, path) in enumerate(zip(start_positions, goal_positions, solution)):
+            st.write(f"Agent {i}: {start} -> {goal}")
+            st.write(format_path(path))
+            st.write(f"Path length: {len(path) - 1}")
+            if path[-1][0] != goal:
+                st.write(f"Warning: Path does not end at the goal location!")
+            st.write("---")
+    else:
+        st.write('Success: No')
