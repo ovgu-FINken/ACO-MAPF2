@@ -50,7 +50,7 @@ class Agent:
         elif method == "simplified-q-learning":
             self.initialize_policy = self._initialize_q
             self.update_policy = self.update_simplified_q
-            self.decision_function = self._q_decision_function
+            self.decision_function = self._simplified_q_decision_function
         else:
             raise NotImplementedError(f"Method {method} is not implemented")
         self.initialize_policy()
@@ -219,9 +219,16 @@ class Agent:
         probabilities = probabilities / np.sum(probabilities)
         return neighbors[np.random.choice(len(probabilities), p=probabilities)]
     
-    def _q_decision_function(self, current, neighbors, goal, greedy=False):
+    def _simplified_q_decision_function(self, current, neighbors, goal, greedy=False):
         q_values = [self.G_t[current][neighbor]['Q'] for neighbor in neighbors]
         return neighbors[np.argmax(q_values)]
+
+    def _q_decision_function(self, current, neighbors, goal, greedy=False):
+        values = []
+        for neighbor in neighbors:
+            v = self.G_t[current][neighbor]['Q']
+            values.append(v + self.beta / (self._heuristic(neighbor[0], goal) + 1))
+        return neighbors[np.argmax(values)]
 
     def epsilon_greedy_decision(self, current, neighbors, goal, epsilon, greedy=False):
         if random.random() < epsilon and not greedy:
