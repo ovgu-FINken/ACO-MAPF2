@@ -94,13 +94,13 @@ class Agent:
                 next_state = path[t + 1]
                 if not len(path[t+1:]):
                     break
-                quality = self._calculate_path_qualities([path[t+1:]], normalize=False, discount=self.gamma)[0]
+                penalty = self._calculate_collision_probability(path[t+1:], discount=self.gamma)
                 
                 # Current Q-value
                 current_q = self.G_t[state][next_state]['Q']
 
                 # Update Q-value
-                self.G_t[state][next_state]['Q'] += self.alpha * (quality - current_q)
+                self.G_t[state][next_state]['Q'] += self.alpha * (penalty - current_q)
                 
     def update_simplified_q(self, paths):
         qualities = self._calculate_path_qualities(paths)
@@ -233,8 +233,8 @@ class Agent:
     def _q_decision_function(self, current, neighbors, goal, greedy=False):
         values = []
         for neighbor in neighbors:
-            v = self.G_t[current][neighbor]['Q']
-            values.append(v + self.beta / (self._heuristic(neighbor[0], goal) + 1))
+            penalty = self.G_t[current][neighbor]['Q']
+            values.append(self.beta / (self._heuristic(neighbor[0], goal) + 1) - penalty)
         return neighbors[np.argmax(values)]
 
     def epsilon_greedy_decision(self, current, neighbors, goal, epsilon, greedy=False):
