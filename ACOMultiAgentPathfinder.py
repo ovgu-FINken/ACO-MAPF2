@@ -94,7 +94,7 @@ class Agent:
                 next_state = path[t + 1]
                 if not len(path[t+1:]):
                     break
-                quality = self._calculate_path_qualities([path[t+1:]], normalize=False)[0]
+                quality = self._calculate_path_qualities([path[t+1:]], normalize=False, discount=self.gamma)[0]
                 
                 # Current Q-value
                 current_q = self.G_t[state][next_state]['Q']
@@ -116,24 +116,31 @@ class Agent:
                 self.G_t[state][next_state]['Q'] += self.alpha * (quality - current_q)
 
 
-    def _calculate_collision_probability(self, path):
+    def _calculate_collision_probability(self, path, discount=1.0):
         collision_prob = 0
         for node, time in path:
-            collision_prob += self.other_occupancy[self.nodelist.index(node), time]
+            collision_prob += discount**time * self.other_occupancy[self.nodelist.index(node), time]
         return collision_prob / len(path)
     
-    def _calculate_path_length(self, path):
+    def _calculate_path_length(self, path, discount=1.0):
         if path[-1][0] == self.goal_position:
             additional_length = 0
         else:
             additional_length = nx.shortest_path_length(self.G, path[-1][0], self.goal_position)
-        return len(path) + additional_length - 1
+        length = len(path) + additional_length - 1
+        if discount == 1.0:
+            return length
+        discounted_length = 0
+        for time in range(int(length)):
+            discounted_length += discount**time
+        return discounted_length
+        
     
-    def _calculate_path_qualities(self, paths, normalize=True):
+    def _calculate_path_qualities(self, paths, normalize=True, discount=1.0):
         if not paths:
             return []
-        path_lengths = [ self._calculate_path_length(path) for path in paths ]
-        collision_probs = [ self._calculate_collision_probability(path) for path in paths ]
+        path_lengths = [ self._calculate_path_length(path, discount=discount) for path in paths ]
+        collision_probs = [ self._calculate_collision_probability(path, discount=discount) for path in paths ]
         
         if path_lengths:
             # Normalize path lengths and collision probabilities to [0, 1] range

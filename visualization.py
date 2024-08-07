@@ -26,6 +26,8 @@ df = load_data()
 st.title('ACO Multi-Agent Pathfinder Benchmark Results')
 
 # Overall statistics
+method = st.radio('Select Method', ('all', 'aco', 'q-learning', 'simplified-q-learning'))
+df = df if method == 'all' else df[df['method'] == method]
 st.header('Overall Statistics')
 col1, col2, col3 = st.columns(3)
 col1.metric('Overall Success Rate', f"{df['success_int'].mean():.2%}")
