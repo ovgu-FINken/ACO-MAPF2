@@ -17,14 +17,14 @@ def run_single_benchmark(benchmark_index):
         'n_episodes': 20,
         'n_iterations': 200,
         'alpha': 1.0,
-        'beta': 1.0,
-        'gamma': 1.0,
+        'beta': 0.5,
+        'gamma': 0.5,
         'evaporation_rate': 0.1,
         'dispersion_rate': 0.1,
-        'communication_interval': 5,
-        'collision_weight': 0.5,
-        'initial_epsilon': 0.1,
-        'method': 'q-learning',
+        'communication_interval': 1,
+        'collision_weight': 0.1,
+        'initial_epsilon': 0.3,
+        'method': 'aco',
     }
     
     # Run the benchmark

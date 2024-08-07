@@ -17,10 +17,10 @@ from yaml_utils import save_results, load_results
 # Define the parameter space
 space = [
     Real(0.0, 1.0, name='alpha'),
-    #Real(0.1, 5.0, name='beta'),
-    #Real(0.1, 5.0, name='gamma'),
-    #Real(0.0, 0.3, name='evaporation_rate'),
-    #Real(0.0, 0.3, name='dispersion_rate'),
+    Real(0.1, 5.0, name='beta'),
+    Real(0.1, 5.0, name='gamma'),
+    Real(0.0, 0.3, name='evaporation_rate'),
+    Real(0.0, 0.3, name='dispersion_rate'),
     Real(0.0, 1.0, name='initial_epsilon'),
     Real(0.0, 1.0, name='collision_weight'),
 ]
@@ -46,14 +46,14 @@ def objective(**params):
     
     planner_params = {
         'n_episodes': 20,
-        'n_iterations': 200,
+        'n_iterations': 100,
         'alpha': 1,
         'beta': 2,
         'gamma': 1,
         'evaporation_rate': 0.1,
-        'communication_interval': 5,
+        'communication_interval': 1,
         'initial_epsilon': 0.8,
-        'method': 'q-learning',
+        'method': 'aco',
     }
     all_args = []
     for benchmark in all_benchmarks:
@@ -69,7 +69,7 @@ def objective(**params):
     avg_path_length = np.mean([l for l in path_lengths if l < np.inf])
     
     # Compute the objective score (to be minimized)
-    score = -success_rate * 1000 - (1 / (avg_path_length + 1))
+    score = -success_rate * 100 - (1 / (avg_path_length + 1))
     if np.isnan(score):
         score = 0
     
