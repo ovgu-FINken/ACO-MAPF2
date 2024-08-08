@@ -13,19 +13,43 @@ def run_single_benchmark(benchmark_index):
     random.seed(benchmark_index)
     
     # Example planner parameters (you may want to load these from a config file)
-    planner_params = {
+
+    planner_params_aco = {
         'n_episodes': 20,
         'n_iterations': 200,
         'alpha': 1.0,
-        'beta': 0.5,
+        'beta': 1.0,
         'gamma': 0.5,
         'evaporation_rate': 0.1,
-        'dispersion_rate': 0.1,
+        'dispersion_rate': 0.01,
         'communication_interval': 1,
         'collision_weight': 0.1,
-        'initial_epsilon': 0.3,
+        'initial_epsilon': 0.2,
         'method': 'aco',
     }
+    planner_params_ql = {
+        'n_episodes': 20,
+        'n_iterations': 200,
+        'alpha': 0.5,
+        'beta': 2.3,
+        'gamma': 0.5,
+        'communication_interval': 1,
+        'collision_weight': 0.3,
+        'initial_epsilon': 0.3,
+        'method': 'q-learning',
+    }
+
+    planner_params_sql = {
+        'n_episodes': 20,
+        'n_iterations': 200,
+        'alpha': 0.3,
+        'communication_interval': 1,
+        'collision_weight': 0.3,
+        'initial_epsilon': 0.4,
+        'method': 'simplified-q-learning',
+    }
+
+    planner_params = planner_params_sql
     
     # Run the benchmark
     solution = benchmark.run(**planner_params)

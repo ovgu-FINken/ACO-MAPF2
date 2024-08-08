@@ -16,12 +16,12 @@ from yaml_utils import save_results, load_results
 
 # Define the parameter space
 space = [
-    Real(0.0, 1.0, name='alpha'),
-    Real(0.1, 5.0, name='beta'),
-    Real(0.1, 5.0, name='gamma'),
-    Real(0.0, 0.3, name='evaporation_rate'),
-    Real(0.0, 0.3, name='dispersion_rate'),
-    Real(0.0, 1.0, name='initial_epsilon'),
+    #Real(0.0, 1.0, name='alpha'),
+    #Real(0.0, 10.0, name='beta'),
+    Real(0.0, 1.0, name='gamma'),
+    #Real(0.0, 0.3, name='evaporation_rate'),
+    #Real(0.0, 0.3, name='dispersion_rate'),
+    Real(0.3, 1.0, name='initial_epsilon'),
     Real(0.0, 1.0, name='collision_weight'),
 ]
 
@@ -46,14 +46,14 @@ def objective(**params):
     
     planner_params = {
         'n_episodes': 20,
-        'n_iterations': 100,
-        'alpha': 1,
-        'beta': 2,
+        'n_iterations': 200,
+        'alpha': 0.5,
+        'beta': 2.3,
         'gamma': 1,
         'evaporation_rate': 0.1,
         'communication_interval': 1,
         'initial_epsilon': 0.8,
-        'method': 'aco',
+        'method': 'q-learning',
     }
     all_args = []
     for benchmark in all_benchmarks:
@@ -116,10 +116,10 @@ def report_model_predictions(model, space):
     best_ei_idx = np.argmax(ei)
     best_ei_params = dict(zip(param_names, X_samples[best_ei_idx]))
     
-    print("\nPoint with highest Expected Improvement:")
-    for param, value in best_ei_params.items():
-        print(f"  {param}: {value:.4f}")
-    print(f"EI value: {ei[best_ei_idx]:.4f}")
+    #print("\nPoint with highest Expected Improvement:")
+    #for param, value in best_ei_params.items():
+    #    print(f"  {param}: {value:.4f}")
+    #print(f"EI value: {ei[best_ei_idx]:.4f}")
     
     # Model fit quality
     y_pred = model.predict(X)

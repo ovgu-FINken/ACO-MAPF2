@@ -9,9 +9,12 @@ def collect_results():
     all_results = []
 
     for file in result_files:
-        with open(file, 'r') as f:
-            results = yaml.safe_load(f)
-            all_results.append(results)
+        try:
+            with open(file, 'r') as f:
+                results = yaml.safe_load(f)
+                all_results.append(results)
+        except yaml.scanner.ScannerError:
+            print(f"scanner error for file {file}")
 
     df = pd.DataFrame(all_results)
 
